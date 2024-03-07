@@ -1,6 +1,6 @@
-## TODO: GLOB is not a good way to collect files. Use explicit file list instead
+project(esp-tflite-micro)
 
-cmake_minimum_required(VERSION 3.5)
+add_compile_definitions(TF_LITE_DISABLE_X86_NEON)
 
 set(tflite_dir "${CMAKE_CURRENT_SOURCE_DIR}/tensorflow/lite")
 set(signal_dir "${CMAKE_CURRENT_SOURCE_DIR}/signal")
@@ -35,24 +35,10 @@ set(signal_srcs
           "${signal_dir}/src/rfft_int32.cc"
           "${signal_dir}/src/window.cc")
 
-# remove sources which will be provided by esp_nn
-list(REMOVE_ITEM srcs_kernels
-          "${tfmicro_kernels_dir}/add.cc"
-          "${tfmicro_kernels_dir}/conv.cc"
-          "${tfmicro_kernels_dir}/depthwise_conv.cc"
-          "${tfmicro_kernels_dir}/fully_connected.cc"
-          "${tfmicro_kernels_dir}/mul.cc"
-          "${tfmicro_kernels_dir}/pooling.cc"
-          "${tfmicro_kernels_dir}/softmax.cc")
-
-FILE(GLOB esp_nn_kernels
-          "${tfmicro_kernels_dir}/esp_nn/*.cc")
-
 set(lib_srcs
           "${srcs_micro}"
           "${srcs_kernels}"
           "${srcs_tflite_bridge}"
-          "${esp_nn_kernels}"
           "${src_micro_frontend}"
           "${signal_srcs}"
           "${tflite_dir}/kernels/kernel_util.cc"
@@ -73,59 +59,19 @@ set(lib_srcs
           "${tflite_dir}/kernels/internal/tensor_ctypes.cc"
           "${tflite_dir}/kernels/internal/reference/portable_tensor_utils.cc"
           "${tflite_dir}/kernels/internal/reference/comparisons.cc"
-          "${tflite_dir}/schema/schema_utils.cc")
+          "${tflite_dir}/schema/schema_utils.cc"
+          "${tflite_dir}/array.cc")
 
-set(priv_req)
+add_library(${PROJECT_NAME} ${lib_srcs})
 
-# include component requirements which were introduced after IDF version 4.1
-if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER "4.1")
-    list(APPEND priv_req esp_timer driver)
-endif()
+set(lib_incl 
+  "${CMAKE_CURRENT_SOURCE_DIR}/."
+  "${CMAKE_CURRENT_SOURCE_DIR}/third_party/gemmlowp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/third_party/flatbuffers/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ruy"
+  "${CMAKE_CURRENT_SOURCE_DIR}/third_party/kissfft"
+  "${CMAKE_CURRENT_SOURCE_DIR}/signal/micro/kernels"
+  "${CMAKE_CURRENT_SOURCE_DIR}/signal/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/signal/src/kiss_fft_wrappers")
 
-idf_component_register(
-            SRCS "${lib_srcs}"
-            INCLUDE_DIRS "." "third_party/gemmlowp"
-                         "third_party/flatbuffers/include"
-                         "third_party/ruy"
-                         "third_party/kissfft"
-                         "signal/micro/kernels"
-                         "signal/src"
-                         "signal/src/kiss_fft_wrappers"
-            REQUIRES ${pub_req}
-            PRIV_REQUIRES ${priv_req})
-
-# Reduce the level of paranoia to be able to compile TF sources
-target_compile_options(${COMPONENT_LIB} PRIVATE
-  -Wno-error=attributes
-  -Wno-error=shadow
-  -Wno-maybe-uninitialized
-  -Wno-missing-field-initializers
-  -Wno-error=sign-compare
-  -Wno-error=double-promotion
-  -Wno-type-limits)
-
-if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER_EQUAL "5.0")
-  target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-error=stringop-overread)
-endif()
-
-# enable ESP-NN optimizations by Espressif
-target_compile_options(${COMPONENT_LIB} PRIVATE -DESP_NN)
-
-set(common_flags -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -O3
-                 -Wstrict-aliasing -Wno-unused-parameter -Wall -Wextra -Wvla
-                 -Wsign-compare -Wdouble-promotion -Wswitch -Wunused-function
-                 -Wmissing-field-initializers -ffunction-sections -fdata-sections
-                 -Wshadow -Wunused-variable -fno-unwind-tables -fmessage-length=0)
-
-target_compile_options(${COMPONENT_LIB} PRIVATE ${common_flags} -fmessage-length=0 -Wno-nonnull)
-target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:
-                                      ${common_flags} -std=c++11 -fno-rtti -fno-exceptions
-                                      -fno-threadsafe-statics -Werror -Wno-return-type
-                                      -Wno-strict-aliasing -std=gnu++14 >)
-
-# avoid issue of compiler internal error caused in `depthwise_conv_flaot.h
-set_source_files_properties(${tfmicro_kernels_dir}/esp_nn/depthwise_conv.cc
-                            PROPERTIES COMPILE_FLAGS -O2)
-
-target_compile_options(${COMPONENT_LIB} INTERFACE -DTF_LITE_STATIC_MEMORY)
-target_link_libraries(${COMPONENT_LIB} PRIVATE -lm)
+target_include_directories(${PROJECT_NAME} PUBLIC ${lib_incl})

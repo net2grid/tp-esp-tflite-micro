@@ -1,4 +1,4 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2023 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,25 +12,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
 
-#include "esp_log.h"
-#include "esp_system.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "main_functions.h"
+#include "tensorflow/lite/array.h"
 
-void tf_main(void) {
-  setup();
-  while (true) {
-    loop();
+namespace tflite {
+namespace array_internal {
+
+void TfLiteArrayDeleter::operator()(TfLiteIntArray* a) {
+  if (a) {
+    TfLiteIntArrayFree(a);
+  }
+}
+void TfLiteArrayDeleter::operator()(TfLiteFloatArray* a) {
+  if (a) {
+    TfLiteFloatArrayFree(a);
   }
 }
 
-extern "C" void app_main() {
-  xTaskCreate((TaskFunction_t)&tf_main, "tensorflow", 8 * 1024, NULL, 8, NULL);
-  vTaskDelete(NULL);
-}
+}  // namespace array_internal
+}  // namespace tflite
