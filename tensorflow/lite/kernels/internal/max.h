@@ -21,12 +21,12 @@ namespace tflite {
 
 #if defined(TF_LITE_USE_GLOBAL_MAX) || defined(__ZEPHYR__)
 inline float TfLiteMax(const float& x, const float& y) {
-  return std::max(x, y);
+  return x > y ? x : y;
 }
 #else
 template <class T>
 inline T TfLiteMax(const T& x, const T& y) {
-  return std::fmax(x, y);
+  return x > y ? x : y;
 }
 #endif
 

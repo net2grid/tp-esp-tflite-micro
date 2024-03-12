@@ -64,7 +64,7 @@ set(lib_srcs
 
 add_library(${PROJECT_NAME} ${lib_srcs})
 
-set(lib_incl 
+set(lib_incl
   "${CMAKE_CURRENT_SOURCE_DIR}/."
   "${CMAKE_CURRENT_SOURCE_DIR}/third_party/gemmlowp"
   "${CMAKE_CURRENT_SOURCE_DIR}/third_party/flatbuffers/include"
