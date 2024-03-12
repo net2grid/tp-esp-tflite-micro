@@ -67,11 +67,11 @@ limitations under the License.
 
 #ifndef TF_LITE_STATIC_MEMORY
 // maximum size of a valid flatbuffer
-inline constexpr unsigned int flatbuffer_size_max = 2147483648;
+static constexpr unsigned int flatbuffer_size_max = 2147483648;
 // If none zero then the buffer is stored outside of the flatbuffers, string
-inline constexpr char tflite_metadata_buffer_location[] = "buffer_location";
+static constexpr char tflite_metadata_buffer_location[] = "buffer_location";
 // field for minimum runtime version, string
-inline constexpr char tflite_metadata_min_runtime_version[] =
+static constexpr char tflite_metadata_min_runtime_version[] =
     "min_runtime_version";
 #endif
 
