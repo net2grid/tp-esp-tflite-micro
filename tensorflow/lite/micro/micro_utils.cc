@@ -21,6 +21,8 @@ limitations under the License.
 
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/compatibility.h"
+#include "tensorflow/lite/kernels/internal/max.h"
+#include "tensorflow/lite/kernels/internal/min.h"
 #include "tensorflow/lite/kernels/op_macros.h"
 #include "tensorflow/lite/micro/memory_helpers.h"
 #include "tensorflow/lite/micro/micro_log.h"
@@ -73,16 +75,16 @@ void SignedSymmetricPerChannelQuantize(
 
     for (int i = 0; i < per_channel_size; i++) {
       int idx = channel * channel_stride + i * stride;
-      min = fminf(min, values[idx]);
-      max = fmaxf(max, values[idx]);
+      min = TfLiteMin(min, values[idx]);
+      max = TfLiteMax(max, values[idx]);
     }
-    scaling_factors[channel] = fmaxf(fabs(min), fabs(max)) / qmax;
+    scaling_factors[channel] = TfLiteMax(fabs(min), fabs(max)) / qmax;
     for (int i = 0; i < per_channel_size; i++) {
       int idx = channel * channel_stride + i * stride;
       const int32_t quantized_value =
           static_cast<int32_t>(roundf(values[idx] / scaling_factors[channel]));
       // Clamp: just in case some odd numeric offset.
-      quantized_values[idx] = fminf(qmax, fmaxf(qmin + 1, quantized_value));
+      quantized_values[idx] = TfLiteMin(qmax, TfLiteMax(qmin + 1, quantized_value));
     }
   }
 }
